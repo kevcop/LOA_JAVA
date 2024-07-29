@@ -127,7 +127,6 @@ fun CoinTossDialog(onResultSelected: (Boolean) -> Unit) {
  */
 @Composable
 fun GameBoard(
-    //initializing variables
     initialBoard: Board,
     round: Round,
     tournament: Tournament,
@@ -135,34 +134,34 @@ fun GameBoard(
     selectedCol: Int,
     onCellClicked: (Int, Int) -> Unit,
     onRestart: () -> Unit,
-    onExit: ()->Unit,
+    onExit: () -> Unit,
     onContinue: () -> Unit
 ) {
-    //keep track of board changes
+    // Keep track of board changes
     val boardState = remember { mutableStateOf(initialBoard) }
-    //record moves made
+    // Record moves made
     val moveLog = remember { mutableStateListOf<String>() }
 
-
-    // will determine if board has had changes and will notify observers of it, goal is to have a reactive UI
+    // Determine if board has had changes and will notify observers of it, goal is to have a reactive UI
     DisposableEffect(Unit) {
-        //create observer instance from board observer
+        // Create observer instance from board observer
         val observer = object : BoardObserver {
-            // method is called whenever board changes
+            // Method is called whenever board changes
             override fun onBoardChanged(newBoard: Board) {
-                //state value of board is changed to the new board
+                // State value of board is changed to the new board
                 boardState.value = newBoard
             }
         }
-        // integrate observer with the board start to ensure updates are received
+        // Integrate observer with the board start to ensure updates are received
         boardState.value.addObserver(observer)
-        //clean up
+        // Clean up
         onDispose {
-            // remove observer after its use is done, avoids memory leaks
+            // Remove observer after its use is done, avoids memory leaks
             boardState.value.removeObserver(observer)
         }
     }
-    // declaring necessary game board attributes
+
+    // Declaring necessary game board attributes
     val rows = 8
     val cols = 8
     val gridSize = 32.dp
@@ -171,8 +170,7 @@ fun GameBoard(
     var selectedColState by remember { mutableStateOf(selectedCol) }
     var gameEnded by remember { mutableStateOf(false) }
     var winnerName by remember { mutableStateOf("") }
-    //used to convert column numbers to letters
-    val columnIdentifiers = ('A'..'H').toList()
+    // Used to convert column numbers to letters
     val numberToLetter = mapOf(
         0 to "A",
         1 to "B",
@@ -183,10 +181,11 @@ fun GameBoard(
         6 to "G",
         7 to "H"
     )
+
     Column(
         modifier = Modifier
             .padding(16.dp)
-            .background(Color( 0xFFCFD8DC  ))
+            .background(Color(0xFFCFD8DC))
             .border(BorderStroke(0.5.dp, Color.Gray)),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -196,12 +195,12 @@ fun GameBoard(
                 .padding(top = 4.dp, start = gridSize.plus(gridPadding.times(10.5f))),
             horizontalArrangement = Arrangement.spacedBy(gridPadding.times(9.99f))
         ) {
-
         }
-        // add row numbers on left hand-side of the board
+
+        // Add row numbers on left hand-side of the board
         Row {
             Column(modifier = Modifier.padding(end = 2.dp)) {
-                //going from top to bottom, top row should be labeled as 8
+                // Going from top to bottom, top row should be labeled as 8
                 for (number in rows downTo 1) {
                     Text(
                         text = number.toString(),
@@ -218,17 +217,17 @@ fun GameBoard(
                         horizontalArrangement = Arrangement.spacedBy(gridPadding),
                         modifier = Modifier.padding(bottom = gridPadding)
                     ) {
-                        //populate the board with pieces
+                        // Populate the board with pieces
                         for (col in 0 until cols) {
-                            //get the piece locations of the current board
+                            // Get the piece locations of the current board
                             val piece = boardState.value.getPieceAt(row, col)
                             val backgroundColor = when {
-                                //change background of cells when they are clicked
+                                // Change background of cells when they are clicked
                                 selectedRowState == row && selectedColState == col -> Color.Yellow
-                                //if board has a char 'W' or 'B' color cell accordingly
+                                // If board has a char 'W' or 'B' color cell accordingly
                                 piece == 'W' -> Color.White
                                 piece == 'B' -> Color.Black
-                                //color unused cells to transparent, adds the effect of cells appearing empty indicating an open spot on the board
+                                // Color unused cells to transparent, adds the effect of cells appearing empty indicating an open spot on the board
                                 else -> Color.Transparent
                             }
                             Box(
@@ -238,51 +237,56 @@ fun GameBoard(
                                     .border(BorderStroke(1.dp, Color.Gray))
                             ) {
                                 Button(
-                                    //will listen for clicks on the board cells
+                                    // Will listen for clicks on the board cells
                                     onClick = {
                                         when {
-                                            //checks if no piece is currently selected and the clicked spot is not empty
+                                            // Checks if no piece is currently selected and the clicked spot is not empty
                                             selectedRowState == -1 && piece != '.' -> {
-                                                //extract coordinates of selected piece
+                                                // Extract coordinates of selected piece
                                                 selectedRowState = row
                                                 selectedColState = col
                                             }
-                                            //check if a piece has been selected already and if the second click is on a different cell
+                                            // Check if a piece has been selected already and if the second click is on a different cell
                                             selectedRowState != -1 && (selectedRowState != row || selectedColState != col) -> {
-                                                //logging
+                                                // Logging
                                                 moveLog.add("${round.currentPlayer.getName()}'s turn")
-                                                //deem if clicked cells represent a valid move
+                                                // Deem if clicked cells represent a valid move
                                                 if (round.nextMove(selectedRowState, selectedColState, row, col)) {
-                                                    //move the piece on the board
+                                                    // Move the piece on the board
                                                     if (boardState.value.movePiece(selectedRowState, selectedColState, row, col, piece)) {
                                                         // Log the move using proper notation
                                                         moveLog.add("Moved from (${numberToLetter[selectedColState]}${8 - selectedRowState}) to (${numberToLetter[col]}${8 - row})")
-                                                        //check if the move executed in the round winning
+                                                        // Check if the move executed in the round winning
                                                         if (round.checkForRoundCompletion()) {
-                                                            //indicate game has ended
+                                                            // Indicate game has ended
                                                             gameEnded = true
-                                                            //extract winner name
+                                                            // Extract winner name
                                                             winnerName = round.getRoundWinner().getName()
+                                                        } else {
+                                                            // Hardcoded computer move
+                                                            val computerMoveStartRow = 1
+                                                            val computerMoveStartCol = 0
+                                                            val computerMoveEndRow = 1
+                                                            val computerMoveEndCol = 2
+                                                            boardState.value.movePiece(computerMoveStartRow, computerMoveStartCol, computerMoveEndRow, computerMoveEndCol, 'B')
+                                                            moveLog.add("Computer moved from (${numberToLetter[computerMoveStartCol]}${8 - computerMoveStartRow}) to (${numberToLetter[computerMoveEndCol]}${8 - computerMoveEndRow})")
                                                         }
-                                                    } else {
-                                                        //moveLog.add("Failed to move from (${selectedRowState + 1}, ${selectedColState.toColumnLetter()}) to (${row + 1}, ${col + 1})")
                                                     }
-                                                    //reset clicks after a successful move
+                                                    // Reset clicks after a successful move
                                                     selectedRowState = -1
                                                     selectedColState = -1
                                                 } else {
-                                                    //add to the column that an invalid move was executed
+                                                    // Add to the column that an invalid move was executed
                                                     moveLog.add("Invalid move from (${numberToLetter[selectedColState]}${8 - selectedRowState}) to (${numberToLetter[col]}${8 - row})")
-                                                    //reset the clicks for an invalid move so user can try again
+                                                    // Reset the clicks for an invalid move so user can try again
                                                     selectedRowState = -1
                                                     selectedColState = -1
                                                 }
-                                            }
-                                            else -> {
-                                                //reset clicks for next player
-                                                selectedRowState = -1
-                                                selectedColState = -1
-                                            }
+                                            } else -> {
+                                            // Reset clicks for next player
+                                            selectedRowState = -1
+                                            selectedColState = -1
+                                        }
                                         }
                                     },
                                     modifier = Modifier.matchParentSize(),
@@ -314,7 +318,7 @@ fun GameBoard(
                         )
                     }
                 }
-                //used to record the actions made during the game
+                // Used to record the actions made during the game
                 Box(modifier = Modifier.fillMaxSize()) {
                     LazyColumn(
                         modifier = Modifier
@@ -335,8 +339,9 @@ fun GameBoard(
                         }
                     }
                 }
-        }}
-        //if game has ended display the game over screen
+            }
+        }
+        // If game has ended display the game over screen
         if (gameEnded) {
             GameOverDialog(
                 winnerName,
@@ -348,6 +353,7 @@ fun GameBoard(
         }
     }
 }
+
 
 /**
  * Displays a dialog at the end of a game round, providing options to continue to the next round, restart the game, or exit to the main menu.
