@@ -18,7 +18,7 @@ public class HumanPlayer extends Player {
     /**
      * Prompts the player to enter their name and sets it.
      */
-    @Override
+    //@Override
     public void askPlayer() {
         System.out.print("Enter your name: ");
         this.playerName = scanner.nextLine();

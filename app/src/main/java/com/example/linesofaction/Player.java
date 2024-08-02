@@ -36,7 +36,7 @@ public abstract class Player {
     /**
      * Abstract method to prompt the player for move input.
      */
-    public abstract void askPlayer();
+    //public abstract void askPlayer();
 
     /**
      * Selects a piece on the board to move.

@@ -101,13 +101,13 @@ public class Rules {
 
         // Verify that the piece at the start position belongs to the player and is within bounds
         if (pieceAtStart == '.' || Character.toUpperCase(pieceAtStart) != Character.toUpperCase(player.getPieceType())) {
-            System.out.println("Debug: No piece to move or piece does not belong to player.");
+            //System.out.println("Debug: No piece to move or piece does not belong to player.");
             return false;
         }
 
         // Check if the move is within board bounds and in a straight line
         if (!board.isPositionValid(startRow, startCol) || !board.isPositionValid(endRow, endCol)) {
-            System.out.println("Debug: Move is out of board bounds.");
+            //System.out.println("Debug: Move is out of board bounds.");
             return false;
         }
         /*boolean isStraightLine = (startRow == endRow) || (startCol == endCol) || (Math.abs(startRow - endRow) == Math.abs(startCol - endCol));
@@ -119,7 +119,7 @@ public class Rules {
         // Ensure the path between start and end positions is clear
         List<Pair<Integer, Integer>> tempCaptures = new ArrayList<>();
         if (!isPathClear(board, startRow, startCol, endRow, endCol, player.getPieceType(), tempCaptures)) {
-            System.out.println("Debug: Path is not clear for the move.");
+            //System.out.println("Debug: Path is not clear for the move.");
             return false;
         }
 
@@ -139,11 +139,11 @@ public class Rules {
 
         int moveDistance = Math.max(Math.abs(startRow - endRow), Math.abs(startCol - endCol));
         //piecesInLine = piecesInLine+1;
-        System.out.println("Debug: Move Distance: " + moveDistance + ", Pieces in Line: " + piecesInLine);
+        //System.out.println("Debug: Move Distance: " + moveDistance + ", Pieces in Line: " + piecesInLine);
 
         // Check if desired move distance is equal to the number of pieces along the line
         if (moveDistance != piecesInLine) {
-            System.out.println("Debug: Invalid move: Move distance does not match the total pieces in line.");
+            //System.out.println("Debug: Invalid move: Move distance does not match the total pieces in line.");
             return false;
         }
 
@@ -151,7 +151,7 @@ public class Rules {
         char pieceAtDestination = board.getPieceAt(endRow, endCol);
         if ((pieceAtDestination != '.' && pieceAtDestination != player.getPieceType() && moveDistance > piecesInLine) ||
                 (pieceAtDestination == '.' && moveDistance != piecesInLine)) {
-            System.out.println("Debug: Conditions for capturing or non-capturing moves not met.");
+            //System.out.println("Debug: Conditions for capturing or non-capturing moves not met.");
             return false;
         }
 
@@ -185,7 +185,7 @@ public class Rules {
             if (board.getPieceAt(currentRow, currentCol) != '.') count++;
         }
 
-        return count;
+        return count+1;
     }
     /**
      * Counts the number of pieces on a diagonal from a starting position.
