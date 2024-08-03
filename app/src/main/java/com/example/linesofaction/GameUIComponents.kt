@@ -3,7 +3,11 @@ package com.example.linesofaction
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,13 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.linesofaction.ui.theme.LinesOfActionTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import com.example.linesofaction.ui.theme.LinesOfActionTheme
 
 /**
  * Displays the main menu of the "Lines of Action" game, providing different game mode options.
@@ -120,7 +120,20 @@ fun CoinTossDialog(onResultSelected: (Boolean) -> Unit) {
  *
  * @param initialBoard The initial state of the game board.
  * @param round The current round of the game being played.
- * @param tournament The tournament context within which the game is being played.
+ * @param selectedRow The row index of the currently selected piece on the board.
+ * @param selectedCol The column index of the currently selected piece on the board.
+ * @param onCellClicked A callback function invoked when a cell on the board is clicked. Takes row and column indices as parameters.
+ * @param onRestart A callback function to handle game restart.
+ * @param onExit A callback function to exit the current game session.
+ * @param onContinue A callback function to continue with the next round or game.
+ */
+
+/**
+ * Renders the game board for the "Lines of Action" game. This composable function displays an 8x8 board
+ * with selectable cells for placing or moving pieces. It updates interactively based on user actions and game logic.
+ *
+ * @param initialBoard The initial state of the game board.
+ * @param round The current round of the game being played.
  * @param selectedRow The row index of the currently selected piece on the board.
  * @param selectedCol The column index of the currently selected piece on the board.
  * @param onCellClicked A callback function invoked when a cell on the board is clicked. Takes row and column indices as parameters.
@@ -132,7 +145,6 @@ fun CoinTossDialog(onResultSelected: (Boolean) -> Unit) {
 fun GameBoard(
     initialBoard: Board,
     round: Round,
-    tournament: Tournament,
     selectedRow: Int,
     selectedCol: Int,
     onCellClicked: (Int, Int) -> Unit,
@@ -142,19 +154,6 @@ fun GameBoard(
 ) {
     val boardState = remember { mutableStateOf(initialBoard) }
     val moveLog = remember { mutableStateListOf<String>() }
-
-    DisposableEffect(Unit) {
-        val observer = object : BoardObserver {
-            override fun onBoardChanged(newBoard: Board) {
-                boardState.value = newBoard
-            }
-        }
-        boardState.value.addObserver(observer)
-        onDispose {
-            boardState.value.removeObserver(observer)
-        }
-    }
-
     val rows = 8
     val cols = 8
     val gridSize = 32.dp
@@ -213,128 +212,66 @@ fun GameBoard(
                                 selectedRowState == row && selectedColState == col -> Color.Yellow
                                 piece == 'W' -> Color.White
                                 piece == 'B' -> Color.Black
-                                else -> Color.Transparent
+                                else -> Color(0xFFCFD8DC)
                             }
                             Box(
                                 modifier = Modifier
                                     .size(gridSize)
                                     .background(backgroundColor)
-                                    .border(BorderStroke(1.dp, Color.Gray))
+                                    .border(BorderStroke(0.5.dp, Color.Gray))
+                                    .clickable { onCellClicked(row, col) },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Button(
-                                    onClick = {
-                                        when {
-                                            selectedRowState == -1 && piece != '.' -> {
-                                                selectedRowState = row
-                                                selectedColState = col
-                                            }
-                                            selectedRowState != -1 && (selectedRowState != row || selectedColState != col) -> {
-                                                moveLog.add("${round.currentPlayer.getName()}'s turn")
-                                                if (round.nextMove(selectedRowState, selectedColState, row, col)) {
-                                                    if (boardState.value.movePiece(
-                                                            selectedRowState,
-                                                            selectedColState,
-                                                            row,
-                                                            col,
-                                                            piece
-                                                        )
-                                                    ) {
-                                                        moveLog.add("Moved from (${numberToLetter[selectedColState]}${8 - selectedRowState}) to (${numberToLetter[col]}${8 - row})")
-                                                        if (round.checkForRoundCompletion()) {
-                                                            gameEnded = true
-                                                            winnerName =
-                                                                round.getRoundWinner().getName()
-                                                        } else if (round.getCurrentPlayer() is ComputerPlayer) {
-                                                            val computerMoveStart = (round.getCurrentPlayer() as ComputerPlayer).getMoveStart()
-                                                            val computerMoveEnd = (round.getCurrentPlayer() as ComputerPlayer).getMoveEnd()
-                                                            if (computerMoveStart != null && computerMoveEnd != null) {
-                                                                boardState.value.movePiece(
-                                                                    computerMoveStart.getFirst(),
-                                                                    computerMoveStart.getSecond(),
-                                                                    computerMoveEnd.getFirst(),
-                                                                    computerMoveEnd.getSecond(),
-                                                                    (round.getCurrentPlayer() as ComputerPlayer).getPieceType()
-                                                                )
-                                                                moveLog.add("Computer moved from (${numberToLetter[computerMoveStart.getSecond()]}${8 - computerMoveStart.getFirst()}) to (${numberToLetter[computerMoveEnd.getSecond()]}${8 - computerMoveEnd.getFirst()})")
-                                                                round.switchTurn()
-                                                            }
-                                                        }
-                                                    }
-                                                    selectedRowState = -1
-                                                    selectedColState = -1
-                                                } else {
-                                                    moveLog.add("Invalid move from (${numberToLetter[selectedColState]}${8 - selectedRowState}) to (${numberToLetter[col]}${8 - row})")
-                                                    selectedRowState = -1
-                                                    selectedColState = -1
-                                                }
-                                            } else -> {
-                                            selectedRowState = -1
-                                            selectedColState = -1
-                                        }
-                                        }
-                                    },
-                                    modifier = Modifier.matchParentSize(),
-                                    colors = ButtonDefaults.buttonColors(Color.Transparent)
-                                ) {
-                                    Text(
-                                        text = if (piece == '.') " " else piece.toString(),
-                                        color = if (backgroundColor == Color.Black) Color.White else Color.Black
+                                if (piece == 'W' || piece == 'B') {
+                                    val color = if (piece == 'W') Color.White else Color.Black
+                                    Box(
+                                        modifier = Modifier
+                                            .size(gridSize / 1.25f)
+                                            .background(color)
                                     )
                                 }
                             }
                         }
                     }
                 }
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(start = 4.dp, top = gridPadding)
-                ) {
-                    ('A'..'H').forEach { letter ->
-                        Text(
-                            text = letter.toString(),
-                            modifier = Modifier
-                                .width(gridSize)
-                                .padding(gridPadding),
-                            fontSize = 14.sp,
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-                Box(modifier = Modifier.fillMaxSize()) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .border(3.dp, Color.Black)
-                            .align(Alignment.TopCenter)
-                    ) {
-                        items(moveLog) { move ->
-                            Text(
-                                text = move,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(2.dp),
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
             }
         }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = gridPadding.times(1.1f), start = gridSize.plus(gridPadding.times(10.9f))),
+            horizontalArrangement = Arrangement.spacedBy(gridPadding.times(9.75f))
+        ) {
+            for (letter in numberToLetter.values) {
+                Text(
+                    text = letter,
+                    modifier = Modifier.size(gridSize),
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
         if (gameEnded) {
-            GameOverDialog(
-                winnerName,
-                round,
-                onContinue = onContinue,
-                onRestart = onRestart,
-                onExit = onExit
+            Text(
+                text = "Winner: $winnerName",
+                fontSize = 24.sp,
+                color = Color.Green,
+                modifier = Modifier.padding(top = 16.dp)
             )
+        }
+
+        TextButton(onClick = onRestart) {
+            Text("Restart Game")
+        }
+
+        TextButton(onClick = onExit) {
+            Text("Exit to Menu")
         }
     }
 }
-
-
 
 
 /**
