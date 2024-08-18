@@ -64,6 +64,14 @@ public class Board {
         notifyObservers();
     }
 
+    public void setPieceAt(int row, int col, char piece) {
+        if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+            board[row][col] = piece;
+        } else {
+            System.out.println("Attempted to set piece out of bounds: (" + row + "," + col + ")");
+        }
+    }
+
 
     /**
      * Moves a piece from the start position to the end position if the move is valid.
@@ -316,6 +324,14 @@ public class Board {
         board[5][7] = 'W';
         //notify observers
         notifyObservers();
+    }
+
+    public void clearBoard() {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                board[row][col] = '.';  // Empty spot
+            }
+        }
     }
 
 

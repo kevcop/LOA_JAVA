@@ -2,12 +2,19 @@ package com.example.linesofaction;
 
 import androidx.annotation.Nullable;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
+import android.content.Context;
 import com.example.linesofaction.Rules.Pair;
 
 public class Round {
@@ -29,6 +36,7 @@ public class Round {
     private Random random;
     private Scanner scanner;
     private Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> lastComputerMove;
+    private List<HumanPlayer.MoveDetails> humanPlayerMoves;
 
     public Round(Player p1, Player p2, @Nullable Player initialWinner, @Nullable Integer boardSetup, @Nullable Integer Player1Score, @Nullable Integer Player2Score, @Nullable Integer WinsForPlayer1, Integer WinsForPlayer2) {
         player1 = p1;
@@ -42,6 +50,7 @@ public class Round {
         if (player2 instanceof ComputerPlayer) {
             computerPlayer = (ComputerPlayer) player2;
         }
+        this.humanPlayerMoves = new ArrayList<>();
 
         moveLog = new ArrayList<>();
         colToIndex = new HashMap<>();
@@ -124,6 +133,10 @@ public class Round {
         System.out.println("Scores for player2 " + player2Score);
     }
 
+    public List<HumanPlayer.MoveDetails> getHumanPlayerMoves() {
+        return humanPlayerMoves;
+    }
+
     public boolean coinToss(boolean userChoiceHeads) {
         boolean tossResult = random.nextBoolean();
 
@@ -189,16 +202,29 @@ public class Round {
         System.out.println("The game has started. It is now " + currentPlayer.getName() + "'s turn with pieces of type '" + currentPlayer.getPieceType() + "'.");
     }
 
+    public List<HumanPlayer.MoveDetails> getPossibleMovesForCurrentPlayer(Board board) {
+        if (currentPlayer instanceof HumanPlayer) {
+            HumanPlayer humanPlayer = (HumanPlayer) currentPlayer;
+            humanPlayer.generateAllPossibleMoves1(board);
+            return humanPlayer.getPossibleMoves1();
+        }
+        return new ArrayList<>(); // Return an empty list if it's not a human player's turn
+    }
+
     public boolean nextMove(int fromRow, int fromCol, int toRow, int toCol) {
         System.out.println("Attempting to move piece from (" + fromRow + "," + fromCol + ") to (" + toRow + "," + toCol + ")");
 
         char selectedPiece = gameBoard.getPieceAt(fromRow, fromCol);
         char playerPieceType = currentPlayer.getPieceType();
 
-        System.out.println("Current player piece type: " + playerPieceType);
+        if (selectedPiece == '.' ) {
+            System.out.println("No piece to move from the selected position (" + fromRow + "," + fromCol + ") ");
+            gameBoard.displayBoard();
+            return false;
+        }
 
-        if (selectedPiece == '.' || selectedPiece != playerPieceType) {
-            System.out.println("No piece to move from the selected position (" + fromRow + "," + fromCol + ") or piece does not belong to player.");
+        if (selectedPiece != playerPieceType) {
+            System.out.println(" (" + fromRow + "," + fromCol + ") or piece does not belong to player.");
             gameBoard.displayBoard();
             return false;
         }
@@ -239,15 +265,12 @@ public class Round {
                             }
                             System.out.println();
                         }
+
                         gameBoard.movePiece(start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond(), currentPlayer.getPieceType());
                         logMove(start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond());
                         gameBoard.displayBoard();
-                        //currentPlayer = player1;
-                        // Switch turn to human player after computer move
-                        //switchTurn();
                     }
                 }
-                //System.out.println("It is now " + currentPlayer.getName() + "'s turn.");
             }
         } else {
             System.out.println("Move could not be executed.");
@@ -261,6 +284,137 @@ public class Round {
         String fromPosition = "[" + fromRow + "," + fromCol + "]";
         String toPosition = "[" + toRow + "," + toCol + "]";
         System.out.println(currentPlayer.getName() + " moves from " + fromPosition + " to " + toPosition);
+    }
+
+    private String properNotation(Pair<Integer, Integer> position) {
+        char column = (char) ('A' + position.getSecond());
+        int row = 8 - position.getFirst();
+        return "" + column + row;
+    }
+
+    public void saveGameState(Context context, String fileName) {
+        File file = new File(context.getFilesDir(), fileName);
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
+            out.write("Board:\n");
+            for (int row = 0; row < 8; row++) {  // Start from row 0 to row 7
+                for (int col = 0; col < 8; col++) {
+                    out.write(gameBoard.getPieceAt(row, col) + " ");
+                }
+                out.newLine();
+            }
+
+            out.write("\nHuman:\n");
+            out.write("Rounds won: " + player1.getRoundsWon() + "\n");
+            out.write("Score: " + player1.getScore() + "\n");
+
+            out.write("\nComputer:\n");
+            out.write("Rounds won: " + player2.getRoundsWon() + "\n");
+            out.write("Score: " + player2.getScore() + "\n");
+
+            String playerType = (currentPlayer instanceof HumanPlayer) ? "Human" : "Computer";
+            out.write("\nNext player: " + playerType + "\n");
+            out.write("Color: " + currentPlayer.getPieceType() + "\n");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Error saving game state.");
+        }
+
+        System.out.println("Game state saved successfully to " + fileName + ".");
+    }
+    public static Round loadGameState(Context context, String fileName) {
+        File file = new File(context.getFilesDir(), fileName);
+        try (BufferedReader in = new BufferedReader(new FileReader(file))) {
+            // Read the board state
+            Board board = new Board();
+            board.clearBoard();
+
+            String line = in.readLine(); // "Board:" line
+            for (int row = 0; row < 8; row++) { // Adjusted to iterate from top to bottom
+                line = in.readLine();
+                String[] pieces = line.split(" ");
+                for (int col = 0; col < 8; col++) {
+                    char piece = pieces[col].charAt(0);
+                    piece = Character.toUpperCase(piece);
+                    if (piece == 'X') {
+                        piece = '.'; // Replace 'x' with '.' or whatever represents empty space
+                    }
+                    board.setPieceAt(row, col, piece);
+                }
+            }
+
+            // Initialize players
+            HumanPlayer humanPlayer = new HumanPlayer("Human");
+            ComputerPlayer computerPlayer = new ComputerPlayer("AI");
+
+            // Load player details
+            String nextPlayerType = null;
+            String pieceColor = null;
+            while ((line = in.readLine()) != null) {
+                if (line.contains("Human:")) {
+                    line = in.readLine();
+                    humanPlayer.setRoundsWon(Integer.parseInt(line.split(": ")[1]));
+                    line = in.readLine();
+                    humanPlayer.setScore(Integer.parseInt(line.split(": ")[1]));
+                } else if (line.contains("Computer:")) {
+                    line = in.readLine();
+                    computerPlayer.setRoundsWon(Integer.parseInt(line.split(": ")[1]));
+                    line = in.readLine();
+                    computerPlayer.setScore(Integer.parseInt(line.split(": ")[1]));
+                } else if (line.contains("Next player:")) {
+                    nextPlayerType = line.split(": ")[1];
+                } else if (line.contains("Color:")) {
+                    pieceColor = line.split(": ")[1];
+                }
+            }
+
+            // Set piece types and determine starting player
+            char humanPieceType, computerPieceType;
+            if ("B".equals(pieceColor)) {
+                if ("Human".equals(nextPlayerType)) {
+                    humanPieceType = 'B';
+                    computerPieceType = 'W';
+                } else {
+                    humanPieceType = 'W';
+                    computerPieceType = 'B';
+                }
+            } else {
+                if ("Human".equals(nextPlayerType)) {
+                    humanPieceType = 'W';
+                    computerPieceType = 'B';
+                } else {
+                    humanPieceType = 'B';
+                    computerPieceType = 'W';
+                }
+            }
+
+            humanPlayer.setPieceType(humanPieceType);
+            computerPlayer.setPieceType(computerPieceType);
+
+            Player startingPlayer = "Human".equals(nextPlayerType) ? humanPlayer : computerPlayer;
+
+            Round loadedRound = new Round(humanPlayer, computerPlayer, null, null, humanPlayer.getScore(), computerPlayer.getScore(), humanPlayer.getRoundsWon(), computerPlayer.getRoundsWon());
+            loadedRound.setBoardState(board);
+            loadedRound.setStartingPlayer(startingPlayer);
+
+            System.out.println("Game state loaded from " + fileName + ".");
+            return loadedRound;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Error loading game state.");
+            return null;
+        }
+    }
+
+
+
+    public void setBoardState(Board board) {
+        this.gameBoard = board;
+    }
+
+    public void clearBoard() {
+        gameBoard.clearBoard();
     }
 
     public void updateScores() {
@@ -320,6 +474,8 @@ public class Round {
             System.out.println("Updated scores: Player 1 (wins: " + winsForPlayer1 + "), Player 2 (wins: " + winsForPlayer2 + ")");
             return true;
         }
+        System.out.println("player 1 rounds won: " + player1.getRoundsWon());
+        System.out.println("player 2 rounds won: " + player2.getRoundsWon());
 
         return false;
     }
@@ -441,5 +597,3 @@ public class Round {
         return gameBoard;
     }
 }
-
-

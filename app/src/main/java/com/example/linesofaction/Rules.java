@@ -133,7 +133,7 @@ public class Rules {
             char direction = determineDiagonalDirection(startRow, startCol, endRow, endCol);
             //piecesInLine = countDiagonalPieces(board, startRow, startCol, direction);
             piecesInLine = countDiagonalPieces(board, startRow, startCol, endRow, endCol);
-            System.out.println("The amount of pieces counted on the line: "+piecesInLine);
+            //System.out.println("The amount of pieces counted on the line: "+piecesInLine);
 
         }
 
@@ -328,8 +328,8 @@ public class Rules {
         // Debug statements for starting and ending positions using game-style notation
         String startPosition = columnNotation[startColDiagonal] + (SIZE - startRowDiagonal);
         String endPosition = columnNotation[endColDiagonal] + (SIZE - endRowDiagonal);
-        System.out.println("Debug: Starting position of the diagonal: " + startPosition);
-        System.out.println("Debug: Ending position of the diagonal: " + endPosition);
+        //System.out.println("Debug: Starting position of the diagonal: " + startPosition);
+        //System.out.println("Debug: Ending position of the diagonal: " + endPosition);
 
         // Count pieces along the diagonal from start to end
         int totalDiagonalCount = 0;
@@ -468,19 +468,19 @@ public class Rules {
 
         // Identify diagonal direction based on the row and column differences
         if (rowDiff < 0 && colDiff > 0) {
-            System.out.println("Moving Northeast");
+            //System.out.println("Moving Northeast");
             return 'N'; // Northeast
         } else if (rowDiff < 0 && colDiff < 0) {
-            System.out.println("Moving Northwest");
+            //System.out.println("Moving Northwest");
             return 'W'; // Northwest
         } else if (rowDiff > 0 && colDiff > 0) {
-            System.out.println("Moving Southeast");
+            //System.out.println("Moving Southeast");
             return 'E'; // Southeast
         } else if (rowDiff > 0 && colDiff < 0) {
-            System.out.println("Moving Southwest");
+            //System.out.println("Moving Southwest");
             return 'S'; // Southwest
         } else {
-            System.out.println("Not a diagonal move");
+            //System.out.println("Not a diagonal move");
             return '0'; // Not a diagonal move
         }
     }

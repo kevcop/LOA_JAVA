@@ -170,5 +170,14 @@ public abstract class Player {
         return this.destinationCol; // Assuming destinationCol is an integer
     }
 
+    public int getScore(){
+        return this.score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
+    }
+
+
 
 }

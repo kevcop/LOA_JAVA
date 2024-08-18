@@ -50,16 +50,32 @@ public class ComputerPlayer extends Player {
         for (int fromRow = 0; fromRow < 8; ++fromRow) {
             for (int fromCol = 0; fromCol < 8; ++fromCol) {
                 if (board.getPieceAt(fromRow, fromCol) == this.getPieceType()) {
+                    // Horizontal moves
                     int horizontalMovesRequired = rules.countPiecesInLine(board, fromRow, fromCol, 'H');
                     for (int offset = 1; offset <= horizontalMovesRequired; ++offset) {
                         addMoveIfValid(board, fromRow, fromCol, fromRow, fromCol + offset);
                         addMoveIfValid(board, fromRow, fromCol, fromRow, fromCol - offset);
                     }
 
+                    // Vertical moves
                     int verticalMovesRequired = rules.countPiecesInLine(board, fromRow, fromCol, 'V');
                     for (int offset = 1; offset <= verticalMovesRequired; ++offset) {
                         addMoveIfValid(board, fromRow, fromCol, fromRow + offset, fromCol);
                         addMoveIfValid(board, fromRow, fromCol, fromRow - offset, fromCol);
+                    }
+
+                    // Diagonal moves (top-left to bottom-right and top-right to bottom-left)
+                    int diagonalMoves1 = rules.countPiecesInLine(board, fromRow, fromCol, 'D');
+                    for (int offset = 1; offset <= diagonalMoves1; ++offset) {
+                        addMoveIfValid(board, fromRow, fromCol, fromRow + offset, fromCol + offset);
+                        addMoveIfValid(board, fromRow, fromCol, fromRow - offset, fromCol - offset);
+                    }
+
+                    // Diagonal moves (bottom-left to top-right and bottom-right to top-left)
+                    int diagonalMoves2 = rules.countPiecesInLine(board, fromRow, fromCol, 'd');
+                    for (int offset = 1; offset <= diagonalMoves2; ++offset) {
+                        addMoveIfValid(board, fromRow, fromCol, fromRow + offset, fromCol - offset);
+                        addMoveIfValid(board, fromRow, fromCol, fromRow - offset, fromCol + offset);
                     }
                 }
             }
