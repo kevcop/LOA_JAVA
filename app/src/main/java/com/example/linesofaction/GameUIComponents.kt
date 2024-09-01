@@ -5,17 +5,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 
 @Composable
@@ -101,73 +101,142 @@ fun GameBoard(
     round: Round,
     selectedRow: Int,
     selectedCol: Int,
+    moveLog: MutableList<String>,  // Receive moveLog from MainActivity
     onCellClicked: (Int, Int) -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit,
     onContinue: () -> Unit,
     onHelpRequested: () -> Unit,
-    onSaveAndExit: () -> Unit  // New callback for Save and Exit
+    onSaveAndExit: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Display the game board (assuming an 8x8 grid)
-        for (row in 0 until 8) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                for (col in 0 until 8) {
-                    val piece = boardState.value.getPieceAt(row, col)
-                    val isSelected = (row == selectedRow && col == selectedCol)
-
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .border(1.dp, Color.Black)
-                            .background(if (isSelected) Color.Gray else Color.White)
-                            .clickable {
-                                onCellClicked(row, col)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = piece.toString(), fontSize = 18.sp)
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            item {
+                // Column Headings (A-H)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    Spacer(modifier = Modifier.size(36.dp))  // Adjusted space for better alignment
+                    for (col in 'A'..'H') {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp),  // Adjusted to fit board cells
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = col.toString(), fontSize = 14.sp, textAlign = TextAlign.Center)
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            items(8) { row ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    // Row heading
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp),  // Adjusted to fit board cells
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = (8 - row).toString(), fontSize = 14.sp, textAlign = TextAlign.Center)
+                    }
 
-        // Buttons for various actions
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Button(onClick = { onRestart() }) {
-                Text("Restart")
-            }
-            Button(onClick = { onExit() }) {
-                Text("Exit")
-            }
-            Button(onClick = { onContinue() }) {
-                Text("Continue")
-            }
-            Button(onClick = { onHelpRequested() }) {
-                Text("Help")
-            }
-        }
+                    for (col in 0 until 8) {
+                        val piece = boardState.value.getPieceAt(row, col)
+                        val isSelected = (row == selectedRow && col == selectedCol)
 
-        Spacer(modifier = Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .border(1.dp, Color.Black)
+                                .background(if (isSelected) Color.Gray else Color.White)
+                                .clickable {
+                                    onCellClicked(row, col)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = piece.toString(), fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
 
-        // Add the Save and Exit button at the bottom
-        Button(
-            onClick = {
-                onSaveAndExit()
-            },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        ) {
-            Text("Save and Exit")
+            item {
+                // Column Headings (A-H) at the bottom
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    Spacer(modifier = Modifier.size(36.dp))  // Adjusted space for better alignment
+                    for (col in 'A'..'H') {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp),  // Adjusted to fit board cells
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = col.toString(), fontSize = 14.sp, textAlign = TextAlign.Center)
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // LazyColumn to display the move history
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .border(1.dp, Color.Black)
+                ) {
+                    items(moveLog) { move ->
+                        Text(
+                            text = move,
+                            modifier = Modifier.padding(4.dp),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                // Buttons for various actions
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { onRestart() }) {
+                        Text("Restart")
+                    }
+                    Button(onClick = { onExit() }) {
+                        Text("Exit")
+                    }
+                    Button(onClick = { onContinue() }) {
+                        Text("Continue")
+                    }
+                    Button(onClick = { onHelpRequested() }) {
+                        Text("Help")
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                // Add the Save and Exit button at the bottom
+                Button(
+                    onClick = {
+                        onSaveAndExit()
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("Save and Exit")
+                }
+            }
         }
     }
 }
-
 
 @Composable
 fun HelpDialog(moves: List<HumanPlayer.MoveDetails>, onDismiss: () -> Unit) {
@@ -184,14 +253,8 @@ fun HelpDialog(moves: List<HumanPlayer.MoveDetails>, onDismiss: () -> Unit) {
                 Spacer(Modifier.height(20.dp))
                 LazyColumn {
                     items(moves) { moveDetails ->
-                        println("Here are the move details" + moveDetails)
-
                         val startNotation = properNotation(moveDetails.getStart())
                         val endNotation = properNotation(moveDetails.getEnd())
-                        //val startNotation = (moveDetails.getStart())
-                        //val endNotation = (moveDetails.getEnd())
-                        println("Start notation "+startNotation)
-                        println("End notation"+endNotation)
                         Text(text = "$startNotation to $endNotation")
                     }
                 }
@@ -204,19 +267,11 @@ fun HelpDialog(moves: List<HumanPlayer.MoveDetails>, onDismiss: () -> Unit) {
     }
 }
 
-/*fun properNotation(position: Rules.Pair<Int, Int>): String {
-    val columnLetter = ('A'.code + position.first).toChar()
-    val rowNumber = 8 - position.second
-    return "$columnLetter$rowNumber"
-}*/
-
 fun properNotation(position: Rules.Pair<Int, Int>): String {
     val columnLetter = ('A'.code + position.second).toChar()
     val rowNumber = 8 - position.first
     return "$columnLetter$rowNumber"
 }
-
-
 
 @Composable
 fun GameOverDialog(
@@ -264,7 +319,6 @@ fun GameOverDialog(
                 }
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = {
-                    println("Exiting to menu. Current gameState: Menu")
                     onExit()
                 }) {
                     Text("Exit to Main Menu")
@@ -296,30 +350,40 @@ fun LoadGameOptions(onLoadSelected: (Int) -> Unit) {
             fontSize = 18.sp,
             modifier = Modifier.padding(bottom = 16.dp)
         )
+
+        // Button for case 1
         Button(
             onClick = { onLoadSelected(1) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Case 1")
         }
+
+        // Button for case 2
         Button(
             onClick = { onLoadSelected(2) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Case 2")
         }
+
+        // Button for case 3
         Button(
             onClick = { onLoadSelected(3) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Case 3")
         }
+
+        // Button for case 4
         Button(
             onClick = { onLoadSelected(4) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Case 4")
         }
+
+        // Button for case 5
         Button(
             onClick = { onLoadSelected(5) },
             modifier = Modifier.fillMaxWidth()

@@ -122,14 +122,25 @@ public class ComputerPlayer extends Player {
             generateAllPossibleMoves(board);
         }
 
-        if (!possibleMoves.isEmpty()) {
-            MoveDetails selectedMove = possibleMoves.get(random.nextInt(possibleMoves.size()));
-            moveStart = selectedMove.getStart();
-            moveEnd = selectedMove.getEnd();
-            return new Pair<>(moveStart, moveEnd);
+        // Filter to capture moves
+        List<MoveDetails> captureMoves = new ArrayList<>();
+        for (MoveDetails move : possibleMoves) {
+            if (!move.getCaptures().isEmpty()) {
+                captureMoves.add(move);
+            }
         }
 
-        return null;
+        // If there are capture moves, prioritize them
+        MoveDetails selectedMove;
+        if (!captureMoves.isEmpty()) {
+            selectedMove = captureMoves.get(random.nextInt(captureMoves.size()));
+        } else {
+            selectedMove = possibleMoves.get(random.nextInt(possibleMoves.size()));
+        }
+
+        moveStart = selectedMove.getStart();
+        moveEnd = selectedMove.getEnd();
+        return new Pair<>(moveStart, moveEnd);
     }
 
     public Pair<Integer, Integer> getMoveStart() {

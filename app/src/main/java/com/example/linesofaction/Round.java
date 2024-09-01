@@ -37,6 +37,8 @@ public class Round {
     private Scanner scanner;
     private Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> lastComputerMove;
     private List<HumanPlayer.MoveDetails> humanPlayerMoves;
+    private List<String> moveHistory;
+
 
     public Round(Player p1, Player p2, @Nullable Player initialWinner, @Nullable Integer boardSetup, @Nullable Integer Player1Score, @Nullable Integer Player2Score, @Nullable Integer WinsForPlayer1, Integer WinsForPlayer2) {
         player1 = p1;
@@ -51,6 +53,8 @@ public class Round {
             computerPlayer = (ComputerPlayer) player2;
         }
         this.humanPlayerMoves = new ArrayList<>();
+        this.moveHistory = new ArrayList<>();
+
 
         moveLog = new ArrayList<>();
         colToIndex = new HashMap<>();
@@ -212,6 +216,13 @@ public class Round {
     }
 
     public boolean nextMove(int fromRow, int fromCol, int toRow, int toCol) {
+        String fromPosition = properNotation(new Rules.Pair<>(fromRow, fromCol));
+        String toPosition = properNotation(new Rules.Pair<>(toRow, toCol));
+
+// Print the debug statement with proper notation
+        System.out.println("Attempting to move piece from " + fromPosition + " to " + toPosition);
+        //System.out.println("Current board in round: ");
+        //gameBoard.displayBoard();
         System.out.println("Attempting to move piece from (" + fromRow + "," + fromCol + ") to (" + toRow + "," + toCol + ")");
 
         char selectedPiece = gameBoard.getPieceAt(fromRow, fromCol);
@@ -235,6 +246,7 @@ public class Round {
         }
 
         if (gameBoard.movePiece(fromRow, fromCol, toRow, toCol, playerPieceType)) {
+            addMove(fromRow, fromCol, toRow, toCol, playerPieceType);
             System.out.println("Move executed successfully.");
             gameBoard.displayBoard();
 
@@ -252,6 +264,7 @@ public class Round {
                 if (currentPlayer instanceof ComputerPlayer) {
                     ComputerPlayer computerPlayer = (ComputerPlayer) currentPlayer;
                     computerPlayer.generateAllPossibleMoves(gameBoard);
+                    computerPlayer.displayPossibleMoves();
                     Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move = computerPlayer.getNextMove(gameBoard);
                     if (move != null) {
                         Pair<Integer, Integer> start = computerPlayer.getMoveStart();
@@ -267,6 +280,8 @@ public class Round {
                         }
 
                         gameBoard.movePiece(start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond(), currentPlayer.getPieceType());
+                        addMove(start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond(), currentPlayer.getPieceType());
+                        showMoveHistory();
                         logMove(start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond());
                         gameBoard.displayBoard();
                     }
@@ -277,6 +292,99 @@ public class Round {
             return false;
         }
 
+        return true;
+    }
+
+    public void resumeFromLoadedState(Round loadedRound) {
+        // Set the round's state based on the loaded round
+        this.player1 = loadedRound.getPlayer1();
+        this.player2 = loadedRound.getPlayer2();
+        this.currentPlayer = loadedRound.getCurrentPlayer();
+        this.gameBoard = loadedRound.getGameBoard();
+
+        // Output current state for debugging
+        System.out.println("Resuming game...");
+        System.out.println("Current Player: " + currentPlayer.getName() + " (Piece: " + currentPlayer.getPieceType() + ")");
+        System.out.println("Player 1: " + player1.getName() + " (Piece: " + player1.getPieceType() + ")");
+        System.out.println("Player 1: " + player1.getName() + " (Piece: " + player1.getPieceType() + ")");
+        System.out.println("Player 2: " + player2.getName() + " (Piece: " + player2.getPieceType() + ")");
+        System.out.println("Board State:");
+        //displayBoardState();
+
+        // If the current player is a human, generate possible moves
+        if (currentPlayer instanceof HumanPlayer) {
+            HumanPlayer humanPlayer = (HumanPlayer) currentPlayer;
+            humanPlayer.generateAllPossibleMoves1(gameBoard);  // Generate possible moves
+            System.out.println("Possible Moves for Human Player:");
+            for (HumanPlayer.MoveDetails move : humanPlayer.getPossibleMoves1()) {
+                String startNotation = properNotation(move.getStart());
+                String endNotation = properNotation(move.getEnd());
+                System.out.println("Move: " + startNotation + " to " + endNotation);
+            }
+        }
+
+        // If the current player is a computer, generate and make a move
+        if (currentPlayer instanceof ComputerPlayer) {
+            ComputerPlayer computerPlayer = (ComputerPlayer) currentPlayer;
+            computerPlayer.generateAllPossibleMoves(gameBoard);
+            Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move = computerPlayer.getNextMove(gameBoard);
+
+            if (move != null) {
+                Pair<Integer, Integer> start = move.getFirst();
+                Pair<Integer, Integer> end = move.getSecond();
+
+
+                // Validate the move
+                if (validateMove(currentPlayer, start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond())) {
+                    addMove(start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond(), currentPlayer.getPieceType());
+                    System.out.println("Computer player is making a move from " + properNotation(start) + " to " + properNotation(end));
+                    gameBoard.movePiece(start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond(), currentPlayer.getPieceType());
+
+                    logMove(start.getFirst(), start.getSecond(), end.getFirst(), end.getSecond());
+                    //displayBoardState();
+                    switchTurn();  // Switch the turn after the computer moves
+                } else {
+                    System.out.println("Invalid move detected. The move will not be executed.");
+                }
+            } else {
+                System.out.println("No valid moves available for the computer.");
+            }
+        }
+    }
+
+    private boolean validateMove(Player player, int fromRow, int fromCol, int toRow, int toCol) {
+        // Convert positions to proper notation
+        String fromPosition = properNotation(new Rules.Pair<>(fromRow, fromCol));
+        String toPosition = properNotation(new Rules.Pair<>(toRow, toCol));
+
+        // Print the debug statement with proper notation
+        System.out.println("Attempting to move piece from " + fromPosition + " to " + toPosition);
+        System.out.println("Attempting to move piece from (" + fromRow + "," + fromCol + ") to (" + toRow + "," + toCol + ")");
+
+        char selectedPiece = gameBoard.getPieceAt(fromRow, fromCol);
+        char playerPieceType = player.getPieceType();
+
+        // Check if there is a piece to move at the selected position
+        if (selectedPiece == '.') {
+            System.out.println("No piece to move from the selected position (" + fromRow + "," + fromCol + ").");
+            gameBoard.displayBoard();  // Show the board state for debugging
+            return false;
+        }
+
+        // Check if the piece at the selected position belongs to the current player
+        if (selectedPiece != playerPieceType) {
+            System.out.println("The piece at (" + fromRow + "," + fromCol + ") does not belong to the current player.");
+            gameBoard.displayBoard();  // Show the board state for debugging
+            return false;
+        }
+
+        // Check if the move is valid according to the game rules
+        if (!rules.isValidMove(gameBoard, player, fromRow, fromCol, toRow, toCol)) {
+            System.out.println("The move is not valid according to the game rules.");
+            return false;
+        }
+
+        // If all checks pass, the move is valid
         return true;
     }
 
@@ -330,14 +438,16 @@ public class Round {
             board.clearBoard();
 
             String line = in.readLine(); // "Board:" line
-            for (int row = 0; row < 8; row++) { // Adjusted to iterate from top to bottom
+
+            // Now read from top to bottom
+            for (int row = 0; row < 8; row++) {
                 line = in.readLine();
                 String[] pieces = line.split(" ");
                 for (int col = 0; col < 8; col++) {
                     char piece = pieces[col].charAt(0);
                     piece = Character.toUpperCase(piece);
                     if (piece == 'X') {
-                        piece = '.'; // Replace 'x' with '.' or whatever represents empty space
+                        piece = '.';
                     }
                     board.setPieceAt(row, col, piece);
                 }
@@ -406,6 +516,8 @@ public class Round {
             return null;
         }
     }
+
+
 
 
 
@@ -595,5 +707,25 @@ public class Round {
 
     public Board getGameBoard() {
         return gameBoard;
+    }
+    public void addMove(int fromRow, int fromCol, int toRow, int toCol, char playerPieceType) {
+        String moveDescription = playerPieceType + " moved from (" + (fromRow + 1) + ", " + (fromCol + 1) + ") to (" + (toRow + 1) + ", " + (toCol + 1) + ")";
+        moveHistory.add(moveDescription);
+    }
+
+    // Get the move history
+    public List<String> getMoveHistory() {
+        return new ArrayList<>(moveHistory);
+    }
+
+    public void showMoveHistory() {
+        System.out.println("Move History:");
+        if (moveHistory.isEmpty()) {
+            System.out.println("No moves have been made yet.");
+        } else {
+            for (String move : moveHistory) {
+                System.out.println(move);
+            }
+        }
     }
 }
