@@ -210,50 +210,49 @@ fun GameContent(
         }
 
         GameState.Load -> LoadGameOptions { selectedCase ->
-            when (selectedCase) {
-                1 -> {
-                    val loadedRound = Round.loadGameState(activity, "serialization_case1.txt")
-                    if (loadedRound != null) {
-                        loadedRound.resumeFromLoadedState(loadedRound)
-                        boardState.value = loadedRound.getGameBoard()
-                        roundState.value = loadedRound
-                        selectedRow = -1
-                        selectedCol = -1
-                        println("Loaded Round Details:")
-                        println(
-                            "Player 1: ${
-                                loadedRound.getPlayer1().getName()
-                            } (Piece Type: ${loadedRound.getPlayer1().getPieceType()})"
-                        )
-                        println(
-                            "Player 2: ${
-                                loadedRound.getPlayer2().getName()
-                            } (Piece Type: ${loadedRound.getPlayer2().getPieceType()})"
-                        )
-                        println(
-                            "Current Player: ${
-                                loadedRound.getCurrentPlayer().getName()
-                            } (Piece Type: ${loadedRound.getCurrentPlayer().getPieceType()})"
-                        )
-                        println("Board State After Loading:")
+            val fileName = "serialization_case${selectedCase}.txt"
+            val loadedRound = Round.loadGameState(activity, fileName)
+            if (loadedRound != null) {
+                loadedRound.resumeFromLoadedState(loadedRound)
+                boardState.value = loadedRound.getGameBoard()
+                roundState.value = loadedRound
+                selectedRow = -1
+                selectedCol = -1
+                println("Loaded Round Details:")
+                println(
+                    "Player 1: ${
+                        loadedRound.getPlayer1().getName()
+                    } (Piece Type: ${loadedRound.getPlayer1().getPieceType()})"
+                )
+                println(
+                    "Player 2: ${
+                        loadedRound.getPlayer2().getName()
+                    } (Piece Type: ${loadedRound.getPlayer2().getPieceType()})"
+                )
+                println(
+                    "Current Player: ${
+                        loadedRound.getCurrentPlayer().getName()
+                    } (Piece Type: ${loadedRound.getCurrentPlayer().getPieceType()})"
+                )
+                println("Board State After Loading:")
 
-                        for (row in 0 until 8) {
-                            var rowRepresentation = ""
-                            for (col in 0 until 8) {
-                                rowRepresentation += "${
-                                    loadedRound.getGameBoard().getPieceAt(row, col)
-                                } "
-                            }
-                            println(rowRepresentation.trim())
-                        }
-                        currentPlayer.value = loadedRound.getCurrentPlayer()
-                        gameState = GameState.ResumePlaying
-                    } else {
-                        println("Failed to load the game state.")
-                        gameState = GameState.Menu
+                for (row in 0 until 8) {
+                    var rowRepresentation = ""
+                    for (col in 0 until 8) {
+                        rowRepresentation += "${
+                            loadedRound.getGameBoard().getPieceAt(row, col)
+                        } "
                     }
+                    println(rowRepresentation.trim())
                 }
-            }
+                currentPlayer.value = loadedRound.getCurrentPlayer()
+                gameState = GameState.ResumePlaying
+            } else {
+                println("Failed to load the game state.")
+                gameState = GameState.Menu
+
+
+    }
         }
     }
 }
@@ -342,7 +341,12 @@ fun handleGamePlay(
                     moveLog,  // Pass moveLog to handleCellClick
                     { newRow, newCol -> updateSelected(newRow, newCol) }
                 )
+                roundState.value?.switchTurn()  // Explicitly switch the turn after the computer moves
+                currentPlayer.value = roundState.value?.getCurrentPlayer()
             }
+        }
+        if (currentPlayer.value !is HumanPlayer) {
+            println("Computer has made its move. Now waiting for human turn.")
         }
     }
 }

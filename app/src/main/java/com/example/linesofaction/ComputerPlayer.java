@@ -98,6 +98,7 @@ public class ComputerPlayer extends Player {
             possibleMoves.add(move);
         }
     }
+    // return objects, assists with move recommendation, gives moves characterisitcs
 
     public void displayPossibleMoves() {
         System.out.println("Possible Moves:");

@@ -164,6 +164,9 @@ public class Round {
             currentPlayer = player1;
         }
         System.out.println("It's now " + currentPlayer.getName() + "'s turn.");
+        System.out.println("Player 1 name: " +player1.getName());
+        System.out.println("Player 2 name: " +player2.getName());
+
     }
 
     public Player getCurrentPlayer() {
@@ -439,7 +442,7 @@ public class Round {
 
             String line = in.readLine(); // "Board:" line
 
-            // Now read from top to bottom
+            // Now read from top to bottom and populate the board
             for (int row = 0; row < 8; row++) {
                 line = in.readLine();
                 String[] pieces = line.split(" ");
@@ -472,38 +475,49 @@ public class Round {
                     line = in.readLine();
                     computerPlayer.setScore(Integer.parseInt(line.split(": ")[1]));
                 } else if (line.contains("Next player:")) {
-                    nextPlayerType = line.split(": ")[1];
+                    nextPlayerType = line.split(": ")[1].trim(); // Trim spaces to prevent errors
                 } else if (line.contains("Color:")) {
-                    pieceColor = line.split(": ")[1];
+                    pieceColor = line.split(": ")[1].trim(); // Trim spaces to prevent errors
                 }
             }
 
-            // Set piece types and determine starting player
+            // Determine who the next player is and set colors accordingly
             char humanPieceType, computerPieceType;
-            if ("B".equals(pieceColor)) {
-                if ("Human".equals(nextPlayerType)) {
-                    humanPieceType = 'B';
-                    computerPieceType = 'W';
+
+            if ("Human".equalsIgnoreCase(nextPlayerType)) {
+                // If the next player is human, assign colors based on the extracted color
+                if ("Black".equalsIgnoreCase(pieceColor)) {
+                    humanPieceType = 'B';  // Human gets black
+                    computerPieceType = 'W';  // Computer gets white
                 } else {
-                    humanPieceType = 'W';
-                    computerPieceType = 'B';
+                    humanPieceType = 'W';  // Human gets white
+                    computerPieceType = 'B';  // Computer gets black
+                }
+            } else if ("Computer".equalsIgnoreCase(nextPlayerType)) {
+                // If the next player is the computer, assign colors based on the extracted color
+                if ("Black".equalsIgnoreCase(pieceColor)) {
+                    computerPieceType = 'B';  // Computer gets black
+                    humanPieceType = 'W';  // Human gets white
+                } else {
+                    computerPieceType = 'W';  // Computer gets white
+                    humanPieceType = 'B';  // Human gets black
                 }
             } else {
-                if ("Human".equals(nextPlayerType)) {
-                    humanPieceType = 'W';
-                    computerPieceType = 'B';
-                } else {
-                    humanPieceType = 'B';
-                    computerPieceType = 'W';
-                }
+                // If neither "Human" nor "Computer" is specified, raise an error or assign default behavior
+                throw new IllegalArgumentException("Invalid next player type in the saved game state: " + nextPlayerType);
             }
 
+            // Set the piece types for the players
             humanPlayer.setPieceType(humanPieceType);
             computerPlayer.setPieceType(computerPieceType);
 
+            // Determine the starting player based on who the next player is
             Player startingPlayer = "Human".equals(nextPlayerType) ? humanPlayer : computerPlayer;
 
-            Round loadedRound = new Round(humanPlayer, computerPlayer, null, null, humanPlayer.getScore(), computerPlayer.getScore(), humanPlayer.getRoundsWon(), computerPlayer.getRoundsWon());
+            // Create and return the loaded round with the board state
+            Round loadedRound = new Round(humanPlayer, computerPlayer, null, null,
+                    humanPlayer.getScore(), computerPlayer.getScore(),
+                    humanPlayer.getRoundsWon(), computerPlayer.getRoundsWon());
             loadedRound.setBoardState(board);
             loadedRound.setStartingPlayer(startingPlayer);
 
@@ -516,6 +530,10 @@ public class Round {
             return null;
         }
     }
+
+
+
+
 
 
 
@@ -709,7 +727,8 @@ public class Round {
         return gameBoard;
     }
     public void addMove(int fromRow, int fromCol, int toRow, int toCol, char playerPieceType) {
-        String moveDescription = playerPieceType + " moved from (" + (fromRow + 1) + ", " + (fromCol + 1) + ") to (" + (toRow + 1) + ", " + (toCol + 1) + ")";
+        String playerType = (currentPlayer instanceof HumanPlayer) ? "Human" : "Computer";
+        String moveDescription = playerType + " (" + playerPieceType + ") moved from " + properNotation(new Rules.Pair<>(fromRow, fromCol)) + " to " + properNotation(new Rules.Pair<>(toRow, toCol));
         moveHistory.add(moveDescription);
     }
 
